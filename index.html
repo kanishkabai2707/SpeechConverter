@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Text to Speech Converter</title>
+<style>
+  :root {
+    --bg: #f7f7fb;
+    --card: #ffffff;
+    --text: #1f2430;
+    --muted: #6b7280;
+    --accent: #6d5bff;
+    --accent-dark: #5847e6;
+    --stop: #e5484d;
+    --stop-dark: #cf3238;
+    --border: #e5e7eb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, #f0eeff 0%, var(--bg) 100%);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--text);
+    padding: 24px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    padding: 32px;
+    width: 100%;
+    max-width: 520px;
+  }
+  h1 { font-size: 1.5rem; margin: 0 0 6px; text-align: center; }
+  p.subtitle { text-align: center; color: var(--muted); margin: 0 0 24px; font-size: 0.95rem; }
+  textarea {
+    width: 100%;
+    min-height: 140px;
+    padding: 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    font-size: 1rem;
+    font-family: inherit;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  textarea:focus { border-color: var(--accent); }
+  .controls { display: flex; gap: 12px; margin-top: 16px; }
+  button {
+    flex: 1;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    color: white;
+    transition: background 0.15s, transform 0.05s;
+  }
+  button:active { transform: scale(0.98); }
+  #speakBtn { background: var(--accent); }
+  #speakBtn:hover { background: var(--accent-dark); }
+  #stopBtn { background: var(--stop); }
+  #stopBtn:hover { background: var(--stop-dark); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .options { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+  .options label {
+    font-size: 0.85rem;
+    color: var(--muted);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 140px;
+  }
+  select, input[type="range"] { width: 100%; }
+  .how-it-works { margin-top: 28px; border-top: 1px solid var(--border); padding-top: 20px; }
+  .how-it-works h2 { font-size: 1rem; margin: 0 0 10px; }
+  .how-it-works ol { margin: 0; padding-left: 20px; color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
+  footer { text-align: center; margin-top: 24px; color: var(--muted); font-size: 0.8rem; }
+  .status { text-align: center; font-size: 0.85rem; color: var(--accent); margin-top: 10px; min-height: 1.2em; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>Text to Speech Converter</h1>
+    <p class="subtitle">Enter text below and convert it into speech with a single click.</p>
+
+    <textarea id="textInput" placeholder="Type or paste something here...">Hello! This is a simple text to speech demo.</textarea>
+
+    <div class="controls">
+      <button id="speakBtn">🔊 Speak</button>
+      <button id="stopBtn">⏹ Stop</button>
+    </div>
+
+    <div class="options">
+      <label>Voice
+        <select id="voiceSelect"></select>
+      </label>
+      <label>Rate: <span id="rateVal">1</span>
+        <input type="range" id="rate" min="0.5" max="2" step="0.1" value="1">
+      </label>
+      <label>Pitch: <span id="pitchVal">1</span>
+        <input type="range" id="pitch" min="0" max="2" step="0.1" value="1">
+      </label>
+    </div>
+
+    <p class="status" id="status"></p>
+
+    <div class="how-it-works">
+      <h2>How It Works</h2>
+      <ol>
+        <li>Enter text in the text box.</li>
+        <li>Click the Speak button.</li>
+        <li>The website reads the text aloud.</li>
+        <li>Click Stop to stop the speech.</li>
+      </ol>
+    </div>
+
+    <footer>Text to Speech Converter — College Project</footer>
+  </div>
+
+<script>
+  const textInput = document.getElementById('textInput');
+  const speakBtn = document.getElementById('speakBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const voiceSelect = document.getElementById('voiceSelect');
+  const rateInput = document.getElementById('rate');
+  const pitchInput = document.getElementById('pitch');
+  const rateVal = document.getElementById('rateVal');
+  const pitchVal = document.getElementById('pitchVal');
+  const status = document.getElementById('status');
+
+  const synth = window.speechSynthesis;
+  let voices = [];
+
+  function populateVoices() {
+    voices = synth.getVoices();
+    voiceSelect.innerHTML = '';
+    voices.forEach((v, i) => {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = `${v.name} (${v.lang})`;
+      voiceSelect.appendChild(opt);
+    });
+  }
+
+  populateVoices();
+  if (synth.onvoiceschanged !== undefined) {
+    synth.onvoiceschanged = populateVoices;
+  }
+
+  rateInput.addEventListener('input', () => rateVal.textContent = rateInput.value);
+  pitchInput.addEventListener('input', () => pitchVal.textContent = pitchInput.value);
+
+  speakBtn.addEventListener('click', () => {
+    const text = textInput.value.trim();
+    if (!text) {
+      status.textContent = 'Please enter some text first.';
+      return;
+    }
+    if (!('speechSynthesis' in window)) {
+      status.textContent = 'Sorry, your browser does not support speech synthesis.';
+      return;
+    }
+
+    synth.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    const selectedVoice = voices[voiceSelect.value];
+    if (selectedVoice) utterance.voice = selectedVoice;
+    utterance.rate = parseFloat(rateInput.value);
+    utterance.pitch = parseFloat(pitchInput.value);
+
+    utterance.onstart = () => status.textContent = 'Speaking...';
+    utterance.onend = () => status.textContent = 'Done.';
+    utterance.onerror = () => status.textContent = 'Something went wrong.';
+
+    synth.speak(utterance);
+  });
+
+  stopBtn.addEventListener('click', () => {
+    synth.cancel();
+    status.textContent = 'Stopped.';
+  });
+</script>
+</body>
+</html>
